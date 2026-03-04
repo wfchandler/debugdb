@@ -492,7 +492,7 @@ mod test {
         fn next(&mut self) -> gimli::UnitSectionOffset {
             let n = self.next_offset;
             self.next_offset += 1;
-            gimli::DebugInfoOffset(n).into()
+            gimli::UnitSectionOffset(n)
         }
     }
 
