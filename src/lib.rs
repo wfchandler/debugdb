@@ -757,13 +757,14 @@ impl DebugDbBuilder {
 ///
 /// The result is a mapping from the data produced by `project` to keys in
 /// `table`.
-fn index_by_key<'t, K: 't, V: 't, T>(
+fn index_by_key<'t, K, V, T>(
     table: impl IntoIterator<Item = (&'t K, &'t V)>,
     mut project: impl FnMut(&K, &V) -> Option<T>,
 ) -> BTreeMap<T, BTreeSet<K>>
 where
+    K: Ord + Clone + 't,
+    V: 't,
     T: Ord,
-    K: Ord + Clone,
 {
     let mut index: BTreeMap<T, BTreeSet<K>> = BTreeMap::new();
 

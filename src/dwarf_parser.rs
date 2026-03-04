@@ -131,7 +131,7 @@ fn parse_namespace(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             _ => (),
         }
@@ -173,7 +173,7 @@ fn parse_base_type(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_byte_size => {
                 byte_size = Some(attr.value().udata_value().unwrap());
@@ -238,7 +238,7 @@ fn parse_structure_type(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_byte_size => {
                 byte_size = Some(attr.value().udata_value().unwrap());
@@ -396,7 +396,7 @@ fn parse_template_type_parameter(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_type => {
                 if let gimli::AttributeValue::UnitRef(o) = attr.value() {
@@ -434,11 +434,11 @@ fn parse_member(
     let mut artificial = false;
     let mut decl_coord = DeclCoord::default();
 
-    let mut attrs = entry.attrs();
+    let _attrs = entry.attrs();
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_artificial => match attr.value() {
                 gimli::AttributeValue::Flag(f) => {
@@ -711,7 +711,7 @@ fn parse_enumeration_type(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_byte_size => {
                 byte_size = Some(attr.value().udata_value().unwrap());
@@ -794,7 +794,7 @@ fn parse_enumerator(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_const_value => {
                 const_value = Some(
@@ -953,7 +953,7 @@ fn parse_pointer_type(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_type => {
                 if let gimli::AttributeValue::UnitRef(o) = attr.value() {
@@ -1019,7 +1019,7 @@ fn parse_union_type(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_byte_size => {
                 byte_size = Some(attr.value().udata_value().unwrap());
@@ -1287,10 +1287,10 @@ fn parse_subprogram(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_linkage_name => {
-                linkage_name = Some(get_attr_string(dwarf, &attr)?);
+                linkage_name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_noreturn => match attr.value() {
                 gimli::AttributeValue::Flag(f) => {
@@ -1461,7 +1461,7 @@ fn parse_sub_parameter(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_type => {
                 if let gimli::AttributeValue::UnitRef(o) = attr.value() {
@@ -1710,10 +1710,10 @@ fn parse_static_variable(
     for attr in entry.attrs() {
         match attr.name() {
             gim_con::DW_AT_name => {
-                name = Some(get_attr_string(dwarf, &attr)?);
+                name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_linkage_name => {
-                linkage_name = Some(get_attr_string(dwarf, &attr)?);
+                linkage_name = Some(get_attr_string(dwarf, attr)?);
             }
             gim_con::DW_AT_location => {
                 let e = attr.exprloc_value().unwrap();

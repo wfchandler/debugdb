@@ -61,8 +61,7 @@ impl Machine for ImgMachine {
 
     fn read_memory(&self, address: u64, dest: &mut [u8]) -> Result<usize, Self::Error> {
         let Ok(address) = usize::try_from(address) else { return Ok(0) };
-        let end = address.checked_add(dest.len())
-            .unwrap_or(usize::MAX);
+        let end = address.saturating_add(dest.len());
         let end = usize::min(end, self.img.len());
         let Some(chunk) = end.checked_sub(address) else { return Ok(0) };
 
@@ -79,8 +78,7 @@ impl Machine for RangeInclusiveMap<u64, Vec<u8>> {
         let offset = address - range.start();
 
         let Ok(offset) = usize::try_from(offset) else { return Ok(0) };
-        let end = offset.checked_add(dest.len())
-            .unwrap_or(usize::MAX);
+        let end = offset.saturating_add(dest.len());
         let end = usize::min(end, segment.len());
         let Some(chunk) = end.checked_sub(offset) else { return Ok(0) };
 
