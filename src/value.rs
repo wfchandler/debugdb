@@ -5,7 +5,7 @@
 
 use regex::Regex;
 
-use crate::load::{choose_variant, load_unsigned, Load, LoadError, Machine};
+use crate::load::{Load, LoadError, Machine, choose_variant, load_unsigned};
 use crate::{DebugDb, Encoding, EntityId, Type, TypeId};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
@@ -449,11 +449,7 @@ impl Struct {
     pub fn unique_member_named<'s>(&'s self, name: &str) -> Option<&'s Value> {
         let mut m = self.members_named(name);
         let r = m.next()?;
-        if m.next().is_some() {
-            None
-        } else {
-            Some(r)
-        }
+        if m.next().is_some() { None } else { Some(r) }
     }
 
     pub fn any_member_named(&self, name: &str) -> Option<&Value> {

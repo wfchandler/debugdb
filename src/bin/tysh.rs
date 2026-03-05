@@ -8,8 +8,8 @@ use rangemap::{RangeInclusiveMap, RangeMap};
 
 use debugdb::load::{ImgMachine, Load};
 use debugdb::{
-    value::Value, DebugDb, Encoding, Enum, Member, Struct, Type, TypeId,
-    VariantShape,
+    DebugDb, Encoding, Enum, Member, Struct, Type, TypeId, VariantShape,
+    value::Value,
 };
 use regex::Regex;
 
@@ -99,7 +99,7 @@ struct Goff(gimli::UnitSectionOffset);
 
 impl std::fmt::Display for Goff {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<.debug_info+0x{:08x}>", self.0 .0)
+        write!(f, "<.debug_info+0x{:08x}>", self.0.0)
     }
 }
 
@@ -121,7 +121,7 @@ impl std::fmt::Display for NamedGoff<'_> {
             f,
             " {}<.debug_info+0x{:08x}>{}",
             dim.prefix(),
-            self.1 .0 .0,
+            self.1.0.0,
             dim.suffix()
         )
     }
@@ -441,9 +441,18 @@ fn cmd_info(db: &debugdb::DebugDb, _ctx: &mut Ctx, args: &str) {
                         member, variants, ..
                     } => {
                         if let Some(dname) = db.type_name(member.type_id) {
-                            println!("- {} variants discriminated by {} at offset {}", variants.len(), dname, member.location);
+                            println!(
+                                "- {} variants discriminated by {} at offset {}",
+                                variants.len(),
+                                dname,
+                                member.location
+                            );
                         } else {
-                            println!("- {} variants discriminated by an anonymous type at offset {}", variants.len(), member.location);
+                            println!(
+                                "- {} variants discriminated by an anonymous type at offset {}",
+                                variants.len(),
+                                member.location
+                            );
                         }
                         if !member.artificial {
                             println!("  - not artificial, oddly");
@@ -1044,12 +1053,13 @@ fn offset_to_path(db: &debugdb::DebugDb, tid: TypeId, offset: u64) {
         Type::Array(a) => {
             let et = db.type_by_id(a.element_type_id).unwrap();
             if let Some(esz) = et.byte_size(db)
-                && esz > 0 {
-                    let index = offset / esz;
-                    let new_offset = offset % esz;
-                    println!("  - index [{}] +0x{:x}", index, new_offset);
-                    offset_to_path(db, a.element_type_id, new_offset);
-                }
+                && esz > 0
+            {
+                let index = offset / esz;
+                let new_offset = offset % esz;
+                println!("  - index [{}] +0x{:x}", index, new_offset);
+                offset_to_path(db, a.element_type_id, new_offset);
+            }
         }
         Type::Struct(s) => {
             // This is where an offsetof-to-member index would be convenient
@@ -1061,18 +1071,19 @@ fn offset_to_path(db: &debugdb::DebugDb, tid: TypeId, offset: u64) {
                 let new_offset = offset - m.location;
                 let mt = db.type_by_id(m.type_id).unwrap();
                 if let Some(msz) = mt.byte_size(db)
-                    && msz > 0 {
-                        if let Some(n) = &m.name {
-                            println!(
-                                "  - .{} +0x{:x} (in {})",
-                                n, new_offset, s.name
-                            );
-                        } else {
-                            return;
-                        }
-                        offset_to_path(db, m.type_id, new_offset);
-                        break;
+                    && msz > 0
+                {
+                    if let Some(n) = &m.name {
+                        println!(
+                            "  - .{} +0x{:x} (in {})",
+                            n, new_offset, s.name
+                        );
+                    } else {
+                        return;
                     }
+                    offset_to_path(db, m.type_id, new_offset);
+                    break;
+                }
             }
         }
         _ => (),

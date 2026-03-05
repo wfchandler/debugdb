@@ -17,7 +17,7 @@ use indexmap::IndexMap;
 use std::{convert::Infallible, num::NonZeroU64};
 use thiserror::Error;
 
-use gimli::{constants as gim_con, UnitSectionOffset};
+use gimli::{UnitSectionOffset, constants as gim_con};
 
 #[derive(Clone, Debug, Error)]
 pub enum ParseError {
@@ -193,7 +193,9 @@ fn parse_base_type(
                         gim_con::DW_ATE_complex_float => Encoding::ComplexFloat,
                         gim_con::DW_ATE_UTF => Encoding::UtfChar,
                         _ => {
-                            eprintln!("WARN: base type {name:?} will be ignored; unsupported encoding {e:?}");
+                            eprintln!(
+                                "WARN: base type {name:?} will be ignored; unsupported encoding {e:?}"
+                            );
                             return skip_entry(cursor); // TODO
                         }
                     });
@@ -341,9 +343,10 @@ fn parse_structure_type(
         let tuple_like = members.iter().enumerate().all(|(i, m)| {
             if let Some(name) = &m.name
                 && let Some(rest) = name.strip_prefix("__")
-                    && let Ok(n) = rest.parse::<usize>() {
-                        return n == i;
-                    }
+                && let Ok(n) = rest.parse::<usize>()
+            {
+                return n == i;
+            }
             false
         });
         builder.record_type(Struct {
@@ -565,7 +568,10 @@ fn parse_variant_part(
     }
 
     if members.len() > 1 {
-        panic!("Variant parts are expected to have a single member; this one has {}", members.len());
+        panic!(
+            "Variant parts are expected to have a single member; this one has {}",
+            members.len()
+        );
     }
 
     let shape = if variants.is_empty() {
