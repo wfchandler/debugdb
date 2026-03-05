@@ -339,13 +339,11 @@ fn parse_structure_type(
         // Scan members to see if this looks like a tuple -- either a raw tuple
         // or a tuple struct.
         let tuple_like = members.iter().enumerate().all(|(i, m)| {
-            if let Some(name) = &m.name {
-                if let Some(rest) = name.strip_prefix("__") {
-                    if let Ok(n) = rest.parse::<usize>() {
+            if let Some(name) = &m.name
+                && let Some(rest) = name.strip_prefix("__")
+                    && let Ok(n) = rest.parse::<usize>() {
                         return n == i;
                     }
-                }
-            }
             false
         });
         builder.record_type(Struct {

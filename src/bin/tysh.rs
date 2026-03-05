@@ -1043,14 +1043,13 @@ fn offset_to_path(db: &debugdb::DebugDb, tid: TypeId, offset: u64) {
     match t {
         Type::Array(a) => {
             let et = db.type_by_id(a.element_type_id).unwrap();
-            if let Some(esz) = et.byte_size(db) {
-                if esz > 0 {
+            if let Some(esz) = et.byte_size(db)
+                && esz > 0 {
                     let index = offset / esz;
                     let new_offset = offset % esz;
                     println!("  - index [{}] +0x{:x}", index, new_offset);
                     offset_to_path(db, a.element_type_id, new_offset);
                 }
-            }
         }
         Type::Struct(s) => {
             // This is where an offsetof-to-member index would be convenient
@@ -1061,8 +1060,8 @@ fn offset_to_path(db: &debugdb::DebugDb, tid: TypeId, offset: u64) {
                 }
                 let new_offset = offset - m.location;
                 let mt = db.type_by_id(m.type_id).unwrap();
-                if let Some(msz) = mt.byte_size(db) {
-                    if msz > 0 {
+                if let Some(msz) = mt.byte_size(db)
+                    && msz > 0 {
                         if let Some(n) = &m.name {
                             println!(
                                 "  - .{} +0x{:x} (in {})",
@@ -1074,7 +1073,6 @@ fn offset_to_path(db: &debugdb::DebugDb, tid: TypeId, offset: u64) {
                         offset_to_path(db, m.type_id, new_offset);
                         break;
                     }
-                }
             }
         }
         _ => (),

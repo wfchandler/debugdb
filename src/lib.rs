@@ -113,11 +113,7 @@ impl DebugDb {
 
     /// Gets the size of a pointer in the program, in bytes.
     pub fn pointer_size(&self) -> usize {
-        if self.is_64 {
-            8
-        } else {
-            4
-        }
+        if self.is_64 { 8 } else { 4 }
     }
 
     /// Returns the number of types in the debug info.
@@ -127,15 +123,13 @@ impl DebugDb {
 
     /// Produces an iterator over all types defined in the debug info, together
     /// with their IDs.
-    pub fn types(&self) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    pub fn types(&self) -> impl Iterator<Item = (TypeId, &Type)> {
         self.types.iter().map(|(&id, ty)| (id, ty))
     }
 
     /// Produces an iterator over all canonical types defined in the debug info,
     /// together with their IDs.
-    pub fn canonical_types(
-        &self,
-    ) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    pub fn canonical_types(&self) -> impl Iterator<Item = (TypeId, &Type)> {
         self.types()
             .filter(move |(tid, _t)| !self.type_canon.contains_key(tid))
     }
@@ -172,7 +166,7 @@ impl DebugDb {
     pub fn types_by_name(
         &self,
         name: &str,
-    ) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    ) -> impl Iterator<Item = (TypeId, &Type)> {
         self.consult_index(&self.type_name_index, name)
     }
 
@@ -182,7 +176,7 @@ impl DebugDb {
         &self,
         element: TypeId,
         count: Option<u64>,
-    ) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    ) -> impl Iterator<Item = (TypeId, &Type)> {
         self.consult_index(&self.array_index, &(element, count))
     }
 
@@ -196,7 +190,7 @@ impl DebugDb {
         &self,
         argument_tys: &[TypeId],
         return_ty: Option<TypeId>,
-    ) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    ) -> impl Iterator<Item = (TypeId, &Type)> {
         self.subroutine_index
             .get(argument_tys)
             .into_iter()
@@ -206,7 +200,7 @@ impl DebugDb {
     /// Returns an iterator over all subprograms defined in this program.
     pub fn subprograms(
         &self,
-    ) -> impl Iterator<Item = (ProgramId, &Subprogram)> + '_ {
+    ) -> impl Iterator<Item = (ProgramId, &Subprogram)> {
         self.subprograms.iter().map(|(&goff, ty)| (goff, ty))
     }
 
@@ -220,7 +214,7 @@ impl DebugDb {
     /// You probably don't want to do this.
     pub fn line_table_rows(
         &self,
-    ) -> impl Iterator<Item = (u64, &[LineNumberRow])> + '_ {
+    ) -> impl Iterator<Item = (u64, &[LineNumberRow])> {
         self.line_table.iter().map(|(&a, row)| (a, &**row))
     }
 
@@ -327,7 +321,7 @@ impl DebugDb {
     /// Returns an iterator over all static variables defined in this program.
     pub fn static_variables(
         &self,
-    ) -> impl Iterator<Item = (VarId, &StaticVariable)> + '_ {
+    ) -> impl Iterator<Item = (VarId, &StaticVariable)> {
         self.variables.iter().map(|(&goff, ty)| (goff, ty))
     }
 
@@ -338,7 +332,7 @@ impl DebugDb {
     pub fn static_variables_by_name(
         &self,
         name: &str,
-    ) -> impl Iterator<Item = (VarId, &StaticVariable)> + '_ {
+    ) -> impl Iterator<Item = (VarId, &StaticVariable)> {
         self.consult_index_generic(
             &self.variables_by_name,
             name,
@@ -362,7 +356,7 @@ impl DebugDb {
     pub fn entities_by_address(
         &self,
         address: u64,
-    ) -> impl Iterator<Item = &AddressRange> + '_ {
+    ) -> impl Iterator<Item = &AddressRange> {
         self.entities_by_address
             .range(..=address)
             .rev()
@@ -376,10 +370,10 @@ impl DebugDb {
         &'d self,
         index: &'d BTreeIndex<TypeId, K>,
         key: &Q,
-    ) -> impl Iterator<Item = (TypeId, &'d Type)> + 'd
+    ) -> impl Iterator<Item = (TypeId, &'d Type)> + use<'d, K, Q>
     where
         K: std::borrow::Borrow<Q> + Ord,
-        Q: Ord + ?Sized + 'd,
+        Q: Ord + ?Sized,
     {
         self.consult_index_generic(index, key, &self.types)
     }
@@ -391,7 +385,7 @@ impl DebugDb {
         index: &'d BTreeIndex<I, K>,
         key: &Q,
         lookup: &'d BTreeMap<I, E>,
-    ) -> impl Iterator<Item = (I, &'d E)> + 'd
+    ) -> impl Iterator<Item = (I, &'d E)> + use<'d, I, K, Q, E>
     where
         K: std::borrow::Borrow<Q> + Ord,
         Q: Ord + ?Sized,
