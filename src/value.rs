@@ -64,6 +64,7 @@ impl Value {
                 Base::U8(_) => "u8".into(),
                 Base::U32(_) => "u32".into(),
                 Base::U64(_) => "u64".into(),
+                Base::U128(_) => "u128".into(),
                 Base::Bool(_) => "bool".into(),
                 Base::Unit => "()".into(),
             },
@@ -116,6 +117,7 @@ impl Value {
                 Base::U8(x) => write!(f, "{x}_u8"),
                 Base::U32(x) => write!(f, "{x}_u32"),
                 Base::U64(x) => write!(f, "{x}_u64"),
+                Base::U128(x) => write!(f, "{x}_u128"),
                 Base::Bool(0) => write!(f, "false"),
                 Base::Bool(1) => write!(f, "true"),
                 Base::Bool(x) => write!(f, "{x}_bool"),
@@ -360,6 +362,7 @@ pub enum Base {
     U8(u8),
     U32(u32),
     U64(u64),
+    U128(u128),
     Bool(u8),
 }
 
@@ -369,6 +372,7 @@ impl Base {
             Self::U8(x) => Some(u64::from(x)),
             Self::U32(x) => Some(u64::from(x)),
             Self::U64(x) => Some(x),
+            Self::U128(x) => Some(u64::try_from(x).unwrap()),
             _ => None,
         }
     }
@@ -395,6 +399,10 @@ impl Load for Base {
             )),
             (Encoding::Unsigned, 8) => Ok(Base::U64(
                 load_unsigned(world.endian(), machine, addr, 8)?
+                    .ok_or(LoadError::DataUnavailable)? as u64,
+            )),
+            (Encoding::Unsigned, 16) => Ok(Base::U128(
+                load_unsigned(world.endian(), machine, addr, 16)?
                     .ok_or(LoadError::DataUnavailable)?,
             )),
             (Encoding::Boolean, 1) => Ok(Base::Bool(
@@ -590,7 +598,7 @@ impl Load for Pointer {
         Ok(Self {
             name: Cow::into_owned(ty.name(world)),
             dest_type_id: s.type_id,
-            value,
+            value: value as u64,
         })
     }
 }

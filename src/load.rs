@@ -148,7 +148,7 @@ pub enum LoadError<E> {
     #[error("can't load an uninhabited (empty) enum")]
     Uninhabited,
     #[error("discriminator value {0} not valid for type")]
-    BadDiscriminator(u64),
+    BadDiscriminator(u128),
     #[error("unsupported type (TODO)")]
     UnsupportedType,
     #[error("expected member `{0}` not found")]
@@ -468,7 +468,7 @@ pub(crate) fn load_unsigned<M: Machine>(
     machine: &M,
     addr: u64,
     size: usize,
-) -> Result<Option<u64>, M::Error> {
+) -> Result<Option<u128>, M::Error> {
     let mut buffer = [0; 8];
     let buffer = &mut buffer[..size];
     let n = machine.read_memory(addr, buffer)?;
@@ -476,10 +476,11 @@ pub(crate) fn load_unsigned<M: Machine>(
         None
     } else {
         Some(match size {
-            1 => u64::from(buffer[0]),
-            2 => u64::from(endian.read_u16(buffer)),
-            4 => u64::from(endian.read_u32(buffer)),
-            8 => endian.read_u64(buffer),
+            1 => u128::from(buffer[0]),
+            2 => u128::from(endian.read_u16(buffer)),
+            4 => u128::from(endian.read_u32(buffer)),
+            8 => u128::from(endian.read_u64(buffer)),
+            16 => endian.read_u128(buffer),
             _ => unimplemented!(),
         })
     })

@@ -604,7 +604,7 @@ fn parse_variant(
     dwarf: &gimli::Dwarf<RtArcReader>,
     unit: &gimli::Unit<RtArcReader>,
     cursor: &mut gimli::EntriesCursor<'_, RtArcReader>,
-) -> Result<(Option<u64>, Variant), ParseError> {
+) -> Result<(Option<u128>, Variant), ParseError> {
     let entry = cursor.current().unwrap();
     assert!(entry.tag() == gim_con::DW_TAG_variant);
 
@@ -614,13 +614,52 @@ fn parse_variant(
 
     for attr in entry.attrs() {
         match attr.name() {
-            gim_con::DW_AT_discr_value => {
-                // TODO: DWARF explicitly does not require this to be unsigned!
-                // It so happens that Rust tends to generated it unsigned, but
-                // as explicit discriminator values become available in more and
-                // more places, this could easily become wrong.
-                discr_value = Some(attr.value().udata_value().unwrap());
-            }
+            gim_con::DW_AT_discr_value => match attr.value() {
+                gimli::AttributeValue::Data1(v) => {
+                    discr_value = Some(v as u128)
+                }
+                gimli::AttributeValue::Data2(v) => {
+                    discr_value = Some(v as u128)
+                }
+                gimli::AttributeValue::Data4(v) => {
+                    discr_value = Some(v as u128)
+                }
+                gimli::AttributeValue::Data8(v) => {
+                    discr_value = Some(v as u128)
+                }
+                gimli::AttributeValue::Sdata(v) => {
+                    discr_value = Some(v as u128)
+                }
+                gimli::AttributeValue::Udata(u) => {
+                    discr_value = Some(u as u128)
+                }
+                gimli::AttributeValue::Block(b) => {
+                    // For enums over u128 values, the discriminant may also be
+                    // a u128. DWARF5 has a `Data16` type that would fit these
+                    // well, but this is not present in DWARF4, so rustc uses a
+                    // block type instead.
+                    let slice = b.as_ref();
+                    let Ok(bytes) = slice.try_into() else {
+                        panic!(
+                            "discriminant block length {} was less than 16 bytes",
+                            slice.len()
+                        );
+                    };
+                    let big_discr = u128::from_le_bytes(bytes);
+                    // let Ok(truncated) = u64::try_from(big_discr) else {
+                    //     panic!(
+                    //         "discriminant value {big_discr:#x} greater than u64::MAX"
+                    //     );
+                    // };
+                    discr_value = Some(big_discr);
+                }
+                _ => {
+                    panic!(
+                        "unexpected discriminant value type {}",
+                        attr.form()
+                    );
+                }
+            },
             gim_con::DW_AT_decl_file => {
                 if let gimli::AttributeValue::FileIndex(f) = attr.value() {
                     if let Some(lp) = &unit.line_program {
@@ -807,7 +846,7 @@ fn parse_enumerator(
                         .or_else(|| {
                             attr.value().sdata_value().map(|x| x as u64)
                         })
-                        .unwrap(),
+                        .unwrap() as u128,
                 );
             }
             _ => (),

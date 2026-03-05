@@ -347,7 +347,7 @@ pub struct CEnum {
     /// Alignment required for values of this enum.
     pub alignment: Option<u64>,
     /// Variants ("enumerators") of this type.
-    pub enumerators: IndexMap<u64, Enumerator>,
+    pub enumerators: IndexMap<u128, Enumerator>,
     /// Location in debug info.
     pub offset: gimli::UnitSectionOffset,
 }
@@ -526,7 +526,7 @@ pub enum VariantShape {
         /// discriminator. The key `None` is used for a "default" `Variant` that
         /// is chosen if none of the explicit values match; this is used to
         /// implement various enum layout optimizations in Rust.
-        variants: IndexMap<Option<u64>, Variant>,
+        variants: IndexMap<Option<u128>, Variant>,
     },
 }
 
@@ -549,7 +549,7 @@ pub struct Enumerator {
     /// Name of this variant.
     pub name: String,
     /// Numeric value associated with this invariant.
-    pub const_value: u64,
+    pub const_value: u128,
     /// Location in debug info.
     pub offset: gimli::UnitSectionOffset,
 }
