@@ -1442,6 +1442,7 @@ fn parse_subprogram(
             if let Some(child) = cursor.current() {
                 match child.tag() {
                     gim_con::DW_TAG_formal_parameter => {
+                        dbg!(&name);
                         formal_parameters
                             .push(parse_sub_parameter(dwarf, unit, cursor)?);
                     }
@@ -1566,9 +1567,29 @@ fn parse_sub_parameter(
                 decl_coord.column =
                     NonZeroU64::new(attr.value().udata_value().unwrap());
             }
-            gim_con::DW_AT_const_value => {
-                const_value = Some(attr.value().udata_value().unwrap());
-            }
+            gim_con::DW_AT_const_value => match attr.value() {
+                gimli::AttributeValue::Udata(v) => {
+                    const_value = Some(v as u128)
+                }
+                gimli::AttributeValue::Addr(a) => const_value = Some(a as u128),
+                gimli::AttributeValue::Block(b) => {
+                    // DWARF5 has a `Data16` type that would fit a u128, but
+                    // this is not present in DWARF4, so rustc uses a block type
+                    // instead.
+                    let slice = b.as_ref();
+                    let Ok(bytes) = slice.try_into() else {
+                        panic!(
+                            "const block length {} was less than 16 bytes",
+                            slice.len()
+                        );
+                    };
+                    let big_const = u128::from_ne_bytes(bytes);
+                    const_value = Some(big_const);
+                }
+                _ => {
+                    panic!("unexpected const value form {}", attr.form());
+                }
+            },
             // location
             _ => {
                 //println!("skipping subparam attr: {:x?}", attr.name());

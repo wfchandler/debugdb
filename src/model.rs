@@ -621,7 +621,7 @@ pub struct SubParameter {
     /// constants.
     ///
     /// TODO: type probably needs to be more general.
-    pub const_value: Option<u64>,
+    pub const_value: Option<u128>,
     /// Location in debug info.
     pub offset: gimli::UnitSectionOffset,
 }
