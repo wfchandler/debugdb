@@ -1803,6 +1803,7 @@ fn parse_static_variable(
                                     }
                                 }
                             } else {
+                                dbg!(r.len());
                                 panic!("unexpected eval results: {:?}", r);
                             }
                         }
