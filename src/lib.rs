@@ -2,23 +2,23 @@
 //! form.
 
 pub mod load;
-pub mod value;
 pub mod model;
 pub mod unify;
+pub mod value;
 
 mod dwarf_parser;
 
-use crate::unify::Unify;
 use crate::dwarf_parser::ParseError;
+use crate::unify::Unify;
 
 pub use self::model::*;
 
 use object::{Object, ObjectSection, ObjectSymbol};
-use thiserror::Error;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::Infallible;
 use std::sync::Arc;
+use thiserror::Error;
 
 // Internal type abbreviations
 type BTreeIndex<I, K> = BTreeMap<K, BTreeSet<I>>;
@@ -98,7 +98,8 @@ pub struct DebugDb {
     entities_by_address: BTreeMap<u64, Vec<AddressRange>>,
 
     // TODO
-    pub debug_frame: gimli::DebugFrame<gimli::EndianReader<gimli::RunTimeEndian, Arc<[u8]>>>,
+    pub debug_frame:
+        gimli::DebugFrame<gimli::EndianReader<gimli::RunTimeEndian, Arc<[u8]>>>,
 
     raw_symbols_by_address: BTreeMap<u64, BTreeSet<String>>,
     raw_symbols_by_name: BTreeMap<String, BTreeSet<u64>>,
@@ -112,11 +113,7 @@ impl DebugDb {
 
     /// Gets the size of a pointer in the program, in bytes.
     pub fn pointer_size(&self) -> usize {
-        if self.is_64 {
-            8
-        } else {
-            4
-        }
+        if self.is_64 { 8 } else { 4 }
     }
 
     /// Returns the number of types in the debug info.
@@ -126,17 +123,13 @@ impl DebugDb {
 
     /// Produces an iterator over all types defined in the debug info, together
     /// with their IDs.
-    pub fn types(
-        &self,
-    ) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    pub fn types(&self) -> impl Iterator<Item = (TypeId, &Type)> {
         self.types.iter().map(|(&id, ty)| (id, ty))
     }
 
     /// Produces an iterator over all canonical types defined in the debug info,
     /// together with their IDs.
-    pub fn canonical_types(
-        &self,
-    ) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    pub fn canonical_types(&self) -> impl Iterator<Item = (TypeId, &Type)> {
         self.types()
             .filter(move |(tid, _t)| !self.type_canon.contains_key(tid))
     }
@@ -150,10 +143,7 @@ impl DebugDb {
     /// If you got `id` from this instance, our consistency invariant ensures
     /// that the result will be `Some`. If `id` is from another instance, or
     /// made up, you may get `None`.
-    pub fn type_by_id(
-        &self,
-        id: TypeId,
-    ) -> Option<&Type> {
+    pub fn type_by_id(&self, id: TypeId) -> Option<&Type> {
         self.types.get(&id)
     }
 
@@ -161,10 +151,7 @@ impl DebugDb {
     ///
     /// Note that not all types have names, so this may return `None` even if
     /// the type exists.
-    pub fn type_name(
-        &self,
-        id: TypeId,
-    ) -> Option<Cow<'_, str>> {
+    pub fn type_name(&self, id: TypeId) -> Option<Cow<'_, str>> {
         Some(self.type_by_id(id)?.name(self))
     }
 
@@ -179,7 +166,7 @@ impl DebugDb {
     pub fn types_by_name(
         &self,
         name: &str,
-    ) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    ) -> impl Iterator<Item = (TypeId, &Type)> {
         self.consult_index(&self.type_name_index, name)
     }
 
@@ -189,7 +176,7 @@ impl DebugDb {
         &self,
         element: TypeId,
         count: Option<u64>,
-    ) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    ) -> impl Iterator<Item = (TypeId, &Type)> {
         self.consult_index(&self.array_index, &(element, count))
     }
 
@@ -203,27 +190,22 @@ impl DebugDb {
         &self,
         argument_tys: &[TypeId],
         return_ty: Option<TypeId>,
-    ) -> impl Iterator<Item = (TypeId, &Type)> + '_ {
+    ) -> impl Iterator<Item = (TypeId, &Type)> {
         self.subroutine_index
             .get(argument_tys)
             .into_iter()
-            .flat_map(move |index|
-                self.consult_index(index, &return_ty)
-            )
+            .flat_map(move |index| self.consult_index(index, &return_ty))
     }
 
     /// Returns an iterator over all subprograms defined in this program.
     pub fn subprograms(
         &self,
-    ) -> impl Iterator<Item = (ProgramId, &Subprogram)> + '_ {
+    ) -> impl Iterator<Item = (ProgramId, &Subprogram)> {
         self.subprograms.iter().map(|(&goff, ty)| (goff, ty))
     }
 
     /// Looks up a subprogram given its `ProgramId`.
-    pub fn subprogram_by_id(
-        &self,
-        pid: ProgramId,
-    ) -> Option<&Subprogram> {
+    pub fn subprogram_by_id(&self, pid: ProgramId) -> Option<&Subprogram> {
         self.subprograms.get(&pid)
     }
 
@@ -232,16 +214,14 @@ impl DebugDb {
     /// You probably don't want to do this.
     pub fn line_table_rows(
         &self,
-    ) -> impl Iterator<Item = (u64, &[LineNumberRow])> + '_ {
+    ) -> impl Iterator<Item = (u64, &[LineNumberRow])> {
         self.line_table.iter().map(|(&a, row)| (a, &**row))
     }
 
     /// Looks up the line number table entry associated with `pc`.
-    pub fn lookup_line_row(
-        &self,
-        pc: u64,
-    ) -> Option<&LineNumberRow> {
-        self.line_table.range(..=pc)
+    pub fn lookup_line_row(&self, pc: u64) -> Option<&LineNumberRow> {
+        self.line_table
+            .range(..=pc)
             .rev()
             .flat_map(|(_, rows)| rows)
             .take_while(move |row| row.pc_range.end > pc)
@@ -263,12 +243,14 @@ impl DebugDb {
         pc: u64,
     ) -> Result<Option<Vec<PcInfo>>, ParseError> {
         // Find subprogram containing PC.
-        let Some((pid, subp)) = self.subprograms()
-            .find(|(_, subp)| subp.pc_range
+        let Some((pid, subp)) = self.subprograms().find(|(_, subp)| {
+            subp.pc_range
                 .as_ref()
                 .map(|r| r.contains(&pc))
-                .unwrap_or(false))
-            else { return Ok(None); };
+                .unwrap_or(false)
+        }) else {
+            return Ok(None);
+        };
 
         let mut frag = vec![];
 
@@ -276,31 +258,31 @@ impl DebugDb {
         // each step.
         let mut enclosing_prog = pid;
         let mut inlines = Some(&subp.inlines);
-        'inline_loop:
-            while let Some(inl) = inlines.take() {
-                for inlsub in inl {
-                    for pcr in &inlsub.pc_ranges {
-                        if pcr.begin <= pc && pc < pcr.end {
-                            // We're in this one.
-                            if let Some(file) = &inlsub.call_coord.file {
-                                frag.push(PcInfo {
-                                    subprogram: enclosing_prog,
-                                    file: file.clone(),
-                                    line: inlsub.call_coord.line,
-                                    column: inlsub.call_coord.column,
-                                });
+        'inline_loop: while let Some(inl) = inlines.take() {
+            for inlsub in inl {
+                for pcr in &inlsub.pc_ranges {
+                    if pcr.begin <= pc && pc < pcr.end {
+                        // We're in this one.
+                        if let Some(file) = &inlsub.call_coord.file {
+                            frag.push(PcInfo {
+                                subprogram: enclosing_prog,
+                                file: file.clone(),
+                                line: inlsub.call_coord.line,
+                                column: inlsub.call_coord.column,
+                            });
 
-                                enclosing_prog = ProgramId(
-                                    inlsub.abstract_origin
-                                    .expect("inlined sub w/o abstract_origin")
-                                );
-                                inlines = Some(&inlsub.inlines);
-                                continue 'inline_loop;
-                            }
+                            enclosing_prog = ProgramId(
+                                inlsub
+                                    .abstract_origin
+                                    .expect("inlined sub w/o abstract_origin"),
+                            );
+                            inlines = Some(&inlsub.inlines);
+                            continue 'inline_loop;
                         }
                     }
                 }
             }
+        }
 
         // Finally, find the innermost record from the line number info.
         if let Some(row) = self.lookup_line_row(pc) {
@@ -315,10 +297,7 @@ impl DebugDb {
         Ok(Some(frag))
     }
 
-    pub fn unique_raw_symbol_by_name(
-        &self,
-        name: &str,
-    ) -> Option<u64> {
+    pub fn unique_raw_symbol_by_name(&self, name: &str) -> Option<u64> {
         let addresses = self.raw_symbols_by_name.get(name)?;
         let mut i = addresses.iter().cloned();
         let result = i.next()?;
@@ -333,7 +312,8 @@ impl DebugDb {
         &self,
         address: u64,
     ) -> impl Iterator<Item = &str> {
-        self.raw_symbols_by_address.get(&address)
+        self.raw_symbols_by_address
+            .get(&address)
             .into_iter()
             .flat_map(|set| set.iter().map(String::as_str))
     }
@@ -341,22 +321,23 @@ impl DebugDb {
     /// Returns an iterator over all static variables defined in this program.
     pub fn static_variables(
         &self,
-    ) -> impl Iterator<Item = (VarId, &StaticVariable)> + '_ {
+    ) -> impl Iterator<Item = (VarId, &StaticVariable)> {
         self.variables.iter().map(|(&goff, ty)| (goff, ty))
     }
 
-    pub fn static_variable_by_id(
-        &self,
-        id: VarId,
-    ) -> Option<&StaticVariable> {
+    pub fn static_variable_by_id(&self, id: VarId) -> Option<&StaticVariable> {
         self.variables.get(&id)
     }
 
     pub fn static_variables_by_name(
         &self,
         name: &str,
-    ) -> impl Iterator<Item = (VarId, &StaticVariable)> + '_ {
-        self.consult_index_generic(&self.variables_by_name, name, &self.variables)
+    ) -> impl Iterator<Item = (VarId, &StaticVariable)> {
+        self.consult_index_generic(
+            &self.variables_by_name,
+            name,
+            &self.variables,
+        )
     }
 
     pub fn unique_static_variable_by_name(
@@ -375,8 +356,9 @@ impl DebugDb {
     pub fn entities_by_address(
         &self,
         address: u64,
-    ) -> impl Iterator<Item = &AddressRange> + '_ {
-        self.entities_by_address.range(..=address)
+    ) -> impl Iterator<Item = &AddressRange> {
+        self.entities_by_address
+            .range(..=address)
             .rev()
             .flat_map(|(_, rec)| rec)
             .filter(move |rec| rec.range.contains(&address))
@@ -388,9 +370,10 @@ impl DebugDb {
         &'d self,
         index: &'d BTreeIndex<TypeId, K>,
         key: &Q,
-    ) -> impl Iterator<Item = (TypeId, &'d Type)> + 'd
-        where K: std::borrow::Borrow<Q> + Ord,
-              Q: Ord + ?Sized + 'd,
+    ) -> impl Iterator<Item = (TypeId, &'d Type)> + use<'d, K, Q>
+    where
+        K: std::borrow::Borrow<Q> + Ord,
+        Q: Ord + ?Sized,
     {
         self.consult_index_generic(index, key, &self.types)
     }
@@ -402,18 +385,16 @@ impl DebugDb {
         index: &'d BTreeIndex<I, K>,
         key: &Q,
         lookup: &'d BTreeMap<I, E>,
-    ) -> impl Iterator<Item = (I, &'d E)> + 'd
-        where K: std::borrow::Borrow<Q> + Ord,
-              Q: Ord + ?Sized,
-              I: Copy + Eq + Ord,
-              E: 'd,
+    ) -> impl Iterator<Item = (I, &'d E)> + use<'d, I, K, Q, E>
+    where
+        K: std::borrow::Borrow<Q> + Ord,
+        Q: Ord + ?Sized,
+        I: Copy + Eq + Ord,
+        E: 'd,
     {
-        index
-            .get(key)
-            .into_iter()
-            .flat_map(move |set| {
-                set.iter().map(move |&goff| (goff, &lookup[&goff]))
-            })
+        index.get(key).into_iter().flat_map(move |set| {
+            set.iter().map(move |&goff| (goff, &lookup[&goff]))
+        })
     }
 }
 
@@ -430,7 +411,8 @@ pub struct DebugDbBuilder {
     is_64: bool,
     types: BTreeMap<TypeId, Type>,
     decls: BTreeMap<String, BTreeSet<TypeId>>,
-    debug_frame: gimli::DebugFrame<gimli::EndianReader<gimli::RunTimeEndian, Arc<[u8]>>>,
+    debug_frame:
+        gimli::DebugFrame<gimli::EndianReader<gimli::RunTimeEndian, Arc<[u8]>>>,
 
     subprograms: BTreeMap<ProgramId, Subprogram>,
     line_table: BTreeMap<u64, Vec<LineNumberRow>>,
@@ -445,7 +427,9 @@ impl DebugDbBuilder {
     pub fn new(
         endian: gimli::RunTimeEndian,
         is_64: bool,
-        debug_frame: gimli::DebugFrame<gimli::EndianReader<gimli::RunTimeEndian, Arc<[u8]>>>,
+        debug_frame: gimli::DebugFrame<
+            gimli::EndianReader<gimli::RunTimeEndian, Arc<[u8]>>,
+        >,
     ) -> Self {
         Self {
             endian,
@@ -517,7 +501,9 @@ impl DebugDbBuilder {
             }
         }
         if ambiguous_decl_count > 0 {
-            eprintln!("WARN: {ambiguous_decl_count} ambiguous declarations found");
+            eprintln!(
+                "WARN: {ambiguous_decl_count} ambiguous declarations found"
+            );
         }
 
         let mut unresolved_types = BTreeMap::new();
@@ -527,13 +513,12 @@ impl DebugDbBuilder {
             if types.contains_key(&id) {
                 Ok(())
             } else {
-                unresolved_types.insert(id, Type::Unresolved(Unresolved {
-                    offset: id.0,
-                }));
+                unresolved_types
+                    .insert(id, Type::Unresolved(Unresolved { offset: id.0 }));
                 Ok(()) // TODO
             }
         };
-        
+
         // Validate that the world is complete and internally consistent.
         for t in types.values() {
             match t {
@@ -619,37 +604,39 @@ impl DebugDbBuilder {
             ind
         };
 
-        let variables_by_name = index_by_key(&self.variables, |_, v| Some(v.name.clone()));
+        let variables_by_name =
+            index_by_key(&self.variables, |_, v| Some(v.name.clone()));
 
         // Build address map.
         let mut entities_by_address: BTreeMap<_, Vec<_>> = BTreeMap::new();
         for (&vid, v) in &self.variables {
             let Some(t) = types.get(&v.type_id) else {
-                eprintln!("WARN: type of variable {} not found: {:x?}",
-                    v.name, v.type_id);
+                eprintln!(
+                    "WARN: type of variable {} not found: {:x?}",
+                    v.name, v.type_id
+                );
                 continue;
             };
-            let sz = t.byte_size_early(
-                if self.is_64 { 8 } else { 4 },
-                |t| types.get(&t),
-            );
+            let sz = t.byte_size_early(if self.is_64 { 8 } else { 4 }, |t| {
+                types.get(&t)
+            });
             if let Some(sz) = sz {
-                entities_by_address.entry(v.location)
-                    .or_default()
-                    .push(AddressRange {
+                entities_by_address.entry(v.location).or_default().push(
+                    AddressRange {
                         range: v.location..v.location + sz,
                         entity: EntityId::Var(vid),
-                    });
+                    },
+                );
             }
         }
         for (&pid, p) in &self.subprograms {
             if let Some(pc_range) = p.pc_range.clone() {
-                entities_by_address.entry(pc_range.start)
-                    .or_default()
-                    .push(AddressRange {
+                entities_by_address.entry(pc_range.start).or_default().push(
+                    AddressRange {
                         range: pc_range,
                         entity: EntityId::Prog(pid),
-                    });
+                    },
+                );
             }
         }
 
@@ -681,7 +668,6 @@ impl DebugDbBuilder {
             self.raw_symbols.iter().map(|(k, v)| (k, v)),
             |_, addr| Some(*addr),
         );
-
 
         Ok(DebugDb {
             endian: self.endian,
@@ -725,13 +711,12 @@ impl DebugDbBuilder {
     }
 
     pub fn record_line_table_row(&mut self, addr: u64, r: LineNumberRow) {
-        self.line_table.entry(addr)
-            .or_default()
-            .push(r)
+        self.line_table.entry(addr).or_default().push(r)
     }
 
     pub fn record_decl(&mut self, name: impl std::fmt::Display, id: TypeId) {
-        self.decls.entry(self.format_path(name))
+        self.decls
+            .entry(self.format_path(name))
             .or_default()
             .insert(id);
     }
@@ -766,13 +751,14 @@ impl DebugDbBuilder {
 ///
 /// The result is a mapping from the data produced by `project` to keys in
 /// `table`.
-fn index_by_key<'t, K: 't, V: 't, T>(
+fn index_by_key<'t, K, V, T>(
     table: impl IntoIterator<Item = (&'t K, &'t V)>,
     mut project: impl FnMut(&K, &V) -> Option<T>,
 ) -> BTreeMap<T, BTreeSet<K>>
 where
+    K: Ord + Clone + 't,
+    V: 't,
     T: Ord,
-    K: Ord + Clone,
 {
     let mut index: BTreeMap<T, BTreeSet<K>> = BTreeMap::new();
 
@@ -796,9 +782,7 @@ pub enum FileError {
 }
 
 /// Parses type information from an `object::File`.
-pub fn parse_file(
-    object: &object::File,
-) -> Result<DebugDb, FileError> {
+pub fn parse_file(object: &object::File) -> Result<DebugDb, FileError> {
     let endian = if object.is_little_endian() {
         gimli::RunTimeEndian::Little
     } else {
@@ -807,7 +791,8 @@ pub fn parse_file(
 
     let load_section =
         |id: gimli::SectionId| -> Result<RtArcReader, FileError> {
-            let cow = object.section_by_name(id.name())
+            let cow = object
+                .section_by_name(id.name())
                 .map(|sect| sect.uncompressed_data())
                 .transpose()?
                 .unwrap_or_else(Default::default);
@@ -835,25 +820,28 @@ pub fn parse_file(
                     if let Some(directory) = file.directory(header) {
                         format!(
                             "{}/{}",
-                            String::from_utf8_lossy(dwarf.attr_string(&unit, directory)?.bytes()),
                             String::from_utf8_lossy(
-                            dwarf
-                            .attr_string(&unit, file.path_name())?
-                            .bytes())
+                                dwarf.attr_string(&unit, directory)?.bytes()
+                            ),
+                            String::from_utf8_lossy(
+                                dwarf
+                                    .attr_string(&unit, file.path_name())?
+                                    .bytes()
+                            )
                         )
                     } else {
                         String::from_utf8_lossy(
-                        dwarf
-                            .attr_string(&unit, file.path_name())?
-                            .bytes())
-                            .into_owned()
+                            dwarf.attr_string(&unit, file.path_name())?.bytes(),
+                        )
+                        .into_owned()
                     }
                 } else {
                     "???".into()
                 };
                 if let Some(mut pending) = last_row.take() {
                     pending.pc_range.end = row.address();
-                    builder.record_line_table_row(pending.pc_range.start, pending);
+                    builder
+                        .record_line_table_row(pending.pc_range.start, pending);
                 }
 
                 if !row.end_sequence() {
@@ -869,20 +857,29 @@ pub fn parse_file(
                 }
             }
             if last_row.is_some() {
-                eprintln!("WARN: line number program not terminated by end sequence");
+                eprintln!(
+                    "WARN: line number program not terminated by end sequence"
+                );
             }
         }
         let mut entries = unit.entries();
-        while let Some(()) = entries.next_entry()? {
+        while entries.next_entry()? {
             if entries.current().is_none() {
                 break;
             }
-            dwarf_parser::parse_entry(&dwarf, &unit, &mut entries, &mut builder)?;
+            dwarf_parser::parse_entry(
+                &dwarf,
+                &unit,
+                &mut entries,
+                &mut builder,
+            )?;
         }
     }
 
     for sym in object.symbols() {
-        let Ok(name) = sym.name() else { continue; };
+        let Ok(name) = sym.name() else {
+            continue;
+        };
         let addr = sym.address();
         builder.record_raw_symbol(addr, name.to_string());
     }
@@ -903,8 +900,9 @@ pub enum EntityId {
 }
 
 fn invert<K, V>(map: &BTreeMap<K, V>) -> BTreeMap<V, BTreeSet<K>>
-    where K: Eq + Ord + Clone,
-          V: Eq + Ord + Clone,
+where
+    K: Eq + Ord + Clone,
+    V: Eq + Ord + Clone,
 {
     let mut result: BTreeMap<V, BTreeSet<K>> = BTreeMap::new();
     for (k, v) in map {
