@@ -1570,6 +1570,9 @@ fn parse_sub_parameter(
                 gimli::AttributeValue::Udata(v) => {
                     const_value = Some(v as u128)
                 }
+                gimli::AttributeValue::Sdata(v) => {
+                    const_value = Some(v as u128)
+                }
                 gimli::AttributeValue::Addr(a) => const_value = Some(a as u128),
                 gimli::AttributeValue::Block(b) => {
                     // DWARF5 has a `Data16` type that would fit a u128, but
