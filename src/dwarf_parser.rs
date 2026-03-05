@@ -1442,7 +1442,6 @@ fn parse_subprogram(
             if let Some(child) = cursor.current() {
                 match child.tag() {
                     gim_con::DW_TAG_formal_parameter => {
-                        dbg!(&name);
                         formal_parameters
                             .push(parse_sub_parameter(dwarf, unit, cursor)?);
                     }
